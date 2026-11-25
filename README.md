@@ -38,8 +38,10 @@ mka bacon
 ```
 
 The flashable zip ends up in `out/target/product/falcon/`. Flash it from
-TWRP (`adb sideload`). The partition table is never changed (the bootloader
-only boots Motorola signed tables):
+TWRP (`adb sideload`), using a TWRP that knows the retrofit `super`: make it
+from the official one with [twrp-super](https://github.com/Moto-Legacy/twrp-super).
+The partition table is never changed (the bootloader only boots Motorola
+signed tables):
 
 Both devices use retrofit dynamic partitions: a `super` spanning the stock
 `system` and `cache` partitions (1.6 GB on both), holding ext4 `system` and
