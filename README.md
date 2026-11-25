@@ -18,17 +18,17 @@ installed:
 # 1. LineageOS 23.2 source, plus the msm8226 trees
 mkdir lineage-23.2 && cd lineage-23.2
 repo init -u https://github.com/LineageOS/android.git -b lineage-23.2 --git-lfs --no-clone-bundle
-git clone https://github.com/FPSensor/local_manifests_msm8226 -b lineage-23.2 .repo/local_manifests
+git clone https://github.com/Moto-Legacy/local_manifests -b lineage-23.2 .repo/local_manifests
 repo sync -c -j8 --no-tags --no-clone-bundle
 
 # 2. Patches (git am needs an identity)
 git config --global user.name  >/dev/null || git config --global user.name  "Your Name"
 git config --global user.email >/dev/null || git config --global user.email "you@example.com"
 git clone https://github.com/Ultra-Legacy-Hippeastrum/legacy_support_patches -b lineage-23.2
-git clone https://github.com/FPSensor/lineage-23.2-kernel34-patches -b lineage-23.2
+git clone https://github.com/Moto-Legacy/patches -b lineage-23.2
 chmod +x legacy_support_patches/apply.sh
 ./legacy_support_patches/apply.sh
-./lineage-23.2-kernel34-patches/apply.sh
+./patches/apply.sh
 # (no kernel path: the msm8226 kernel tree already carries kernel-3.4/)
 
 # 3. Build (falcon or peregrine)
@@ -48,7 +48,7 @@ at `-j8` or lower if GitHub starts refusing connections.
 ```sh
 # from the root of a lineage-23.2 tree
 ./legacy_support_patches/apply.sh
-./lineage-23.2-kernel34-patches/apply.sh kernel/<vendor>/<device>
+./patches/apply.sh kernel/<vendor>/<device>
 ```
 
 The kernel path is optional; without it only the platform patches are

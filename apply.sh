@@ -3,7 +3,7 @@
 # Apply the LineageOS 23.2 patches for Linux 3.4 era devices.
 #
 # Usage, from the root of a lineage-23.2 tree, after legacy_support_patches:
-#   ./lineage-23.2-kernel34-patches/apply.sh [path/to/kernel]
+#   ./patches/apply.sh [path/to/kernel]
 #
 # The kernel patches are only applied when a kernel path is given.
 
