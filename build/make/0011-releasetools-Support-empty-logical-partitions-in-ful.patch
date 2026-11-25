@@ -1,0 +1,80 @@
+From 4aa62ffc1cb69a2e5547368400be0fbded86c6fb Mon Sep 17 00:00:00 2001
+From: FPSensor <gkartyt@gmail.com>
+Date: Wed, 18 Nov 2026 14:51:44 +0000
+Subject: [PATCH] releasetools: Support empty logical partitions in full OTAs
+
+BOARD_SUPER_EMPTY_PARTITIONS ("name:group:size") adds logical
+partitions that have no image, e.g. /metadata on retrofit devices whose
+only free room is super. Full OTAs create them and zero their first
+megabyte so fs_mgr formats them (formattable) on first boot.
+
+Change-Id: Iff18c04b17738290d15d57f802dc5e4d97119ffc
+---
+ core/Makefile                |  2 ++
+ tools/releasetools/common.py | 26 ++++++++++++++++++++++++++
+ 2 files changed, 28 insertions(+)
+
+diff --git a/core/Makefile b/core/Makefile
+index 3b3ce2a294..f61f423f84 100644
+--- a/core/Makefile
++++ b/core/Makefile
+@@ -6425,6 +6425,8 @@ define dump-dynamic-partitions-info
+     echo "super_$(group)_group_size=$(BOARD_$(call to-upper,$(group))_SIZE)" >> $(1); \
+     $(if $(BOARD_$(call to-upper,$(group))_PARTITION_LIST), \
+       echo "super_$(group)_partition_list=$(strip $(call filter-out-missing-partitions,$(BOARD_$(call to-upper,$(group))_PARTITION_LIST)))" >> $(1);))
++  $(if $(BOARD_SUPER_EMPTY_PARTITIONS), \
++    echo "super_empty_partitions=$(BOARD_SUPER_EMPTY_PARTITIONS)" >> $(1))
+   $(if $(filter true,$(TARGET_USERIMAGES_SPARSE_EXT_DISABLED)), \
+     echo "build_non_sparse_super_partition=true" >> $(1))
+   $(if $(filter true,$(TARGET_USERIMAGES_SPARSE_F2FS_DISABLED)), \
+diff --git a/tools/releasetools/common.py b/tools/releasetools/common.py
+index 608ea96206..c25accdc9f 100644
+--- a/tools/releasetools/common.py
++++ b/tools/releasetools/common.py
+@@ -3980,6 +3980,17 @@ class DynamicPartitionsDifference(object):
+       self._remove_all_before_apply = True
+       source_info_dict = {}
+ 
++    # Logical partitions without an image (BOARD_SUPER_EMPTY_PARTITIONS,
++    # "name:group:size"), e.g. /metadata on devices whose only free room is
++    # super: created empty and zeroed by full OTAs, formatted by fs_mgr on
++    # first boot.
++    self._empty_partitions = []
++    if self._remove_all_before_apply:
++      for entry in shlex.split(info_dict.get(
++              "super_empty_partitions", "").strip()):
++        name, group, size = entry.split(":")
++        self._empty_partitions.append((name, group, int(size)))
++
+     block_diff_dict = collections.OrderedDict(
+         [(e.partition, e) for e in block_diffs])
+ 
+@@ -4079,6 +4090,16 @@ class DynamicPartitionsDifference(object):
+       script.AppendExtra('assert(update_dynamic_partitions('
+                         'package_extract_file("dynamic_partitions_op_list")));')
+ 
++    for name, _, _ in self._empty_partitions:
++      script.Comment('Zero the start of empty partition %s' % name)
++      zero = ('concat("dd if=/dev/zero of=", map_partition("%s"), '
++              '" bs=1048576 count=1")' % name)
++      script.AppendExtra(
++          '(run_program("/system/bin/sh", "-c", %s) == 0 || '
++          'run_program("/sbin/sh", "-c", %s) == 0 || '
++          'ui_print("Warning: could not zero %s"));' % (zero, zero, name))
++      script.AppendExtra('unmap_partition("%s");' % name)
++
+     if write_verify_script:
+       for p, u in self._partition_updates.items():
+         if u.src_size and u.tgt_size and u.src_size > u.tgt_size:
+@@ -4158,6 +4179,11 @@ class DynamicPartitionsDifference(object):
+                 (p, u.tgt_group))
+         append('move %s %s' % (p, u.tgt_group))
+ 
++    for name, group, size in self._empty_partitions:
++      comment('Add empty partition %s to group %s' % (name, group))
++      append('add %s %s' % (name, group))
++      append('resize %s %d' % (name, size))
++
+ 
+ def GetBootImageBuildProp(boot_img, ramdisk_format=RamdiskFormat.LZ4):
+   """

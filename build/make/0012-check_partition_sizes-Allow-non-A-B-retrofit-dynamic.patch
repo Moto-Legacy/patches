@@ -1,0 +1,38 @@
+From 25db4680a26690203979759b8385fd1783cf59ba Mon Sep 17 00:00:00 2001
+From: FPSensor <gkartyt@gmail.com>
+Date: Wed, 18 Nov 2026 15:22:32 +0000
+Subject: [PATCH] check_partition_sizes: Allow non-A/B retrofit dynamic
+ partitions
+
+fs_mgr already supports them: without a slot suffix it takes
+androidboot.super_partition as the super partition name, as on
+cuttlefish. For legacy devices whose bootloader only takes signed
+partition tables, it's the only way to merge partitions.
+
+Change-Id: I62cf7cf3632f741620255a5420a7b048f0de6d32
+---
+ tools/releasetools/check_partition_sizes.py | 10 ++++++----
+ 1 file changed, 6 insertions(+), 4 deletions(-)
+
+diff --git a/tools/releasetools/check_partition_sizes.py b/tools/releasetools/check_partition_sizes.py
+index a03580959c..c6d761d811 100644
+--- a/tools/releasetools/check_partition_sizes.py
++++ b/tools/releasetools/check_partition_sizes.py
+@@ -183,11 +183,13 @@ class DynamicPartitionSizeChecker(object):
+       raise RuntimeError("check_partition_sizes should only be executed on "
+                          "builds with dynamic partitions enabled")
+ 
+-    # Retrofit dynamic partitions: 1 slot per "super", 2 "super"s on the device
++    # Retrofit dynamic partitions: 1 slot per "super", 2 "super"s on A/B
++    # devices, a single one on non-A/B devices (fs_mgr takes the super
++    # partition name from androidboot.super_partition as is there).
+     if dap == Dap.RDAP:
+-      if slot != DeviceType.AB:
+-        raise RuntimeError("Device with retrofit dynamic partitions must use "
+-                           "regular (non-Virtual) A/B")
++      if slot in (DeviceType.VAB, DeviceType.RVAB):
++        raise RuntimeError("Device with retrofit dynamic partitions must not "
++                           "use Virtual A/B")
+       return 1
+ 
+     # Launch DAP: 1 super on the device

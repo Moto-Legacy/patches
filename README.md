@@ -38,7 +38,16 @@ mka bacon
 ```
 
 The flashable zip ends up in `out/target/product/falcon/`. Flash it from
-TWRP (`adb sideload`); it only writes `boot` and `system`.
+TWRP (`adb sideload`). The partition table is never changed (the bootloader
+only boots Motorola signed tables):
+
+- **falcon** uses retrofit dynamic partitions: a `super` spanning the stock
+  `system` and `cache` partitions, holding ext4 `system` and `vendor` logical
+  partitions plus an empty `metadata` one. The zip writes `boot` and that
+  `super`, so `cache` is taken over.
+- **peregrine** keeps the stock layout: a squashfs `system` (with vendor and
+  product inside) and `cache` mounted as `/metadata`. The zip writes `boot`
+  and `system`.
 
 Only one build at a time on machines with little RAM, and keep `repo sync`
 at `-j8` or lower if GitHub starts refusing connections.
@@ -91,6 +100,7 @@ camera, compass...). Not daily driver material yet.
 |---|---|
 | build/make | Non-A/B OTAs for devices without a recovery partition (fstab and install helpers in the target files, `cache_size` without a cache image) |
 | build/make | Pass the QCDT `dt.img` (`BOARD_KERNEL_SEPARATED_DT`) to the boot image, also when releasetools rebuilds it |
+| build/make | Retrofit dynamic partitions on non-A/B devices: allow them in `check_partition_sizes`, and support empty logical partitions (falcon's `metadata`) in full OTAs, created writable |
 | build/soong | Keep dex compressed when dexpreopt is disabled globally (space) |
 | build/soong, build/make | Bring back `WITH_DEXPREOPT_BOOT_IMG_AND_SYSTEM_SERVER_ONLY`: preopt the boot images and system_server only (no boot image means the whole framework runs interpreted and system_server trips the watchdog) |
 | build/soong, build/make | With that knob, still preopt `PRODUCT_DEXPREOPT_SPEED_APPS` (SystemUI, launcher, Settings): left to the JIT they're most of the UI lag on a 1 GB Cortex-A7 |
@@ -138,7 +148,8 @@ Not patches, but needed in the device tree on these kernels:
 - `CONFIG_IKCONFIG_PROC=y` (`android.os.Debug` reads `/proc/config.gz`).
 - A `/metadata` partition (aconfigd keeps the feature flags there; without it
   flagged permissions disappear and AppOps kills system_server). An unused
-  cache partition works.
+  cache partition works, or an empty logical partition in a retrofit `super`
+  (`BOARD_SUPER_EMPTY_PARTITIONS`).
 - Legacy keymaster (0.x/3.0) has no AES: use AOSP's software keymaster 4.1 and
   gatekeeper, or LockSettings kills system_server.
 - Legacy HALs must be installed to `/vendor/lib/hw` (`LOCAL_VENDOR_MODULE`).

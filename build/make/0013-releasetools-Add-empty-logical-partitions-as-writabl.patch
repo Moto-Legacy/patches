@@ -1,0 +1,27 @@
+From 82c29f0364ab1636670a978d3e54fd2938cec028 Mon Sep 17 00:00:00 2001
+From: FPSensor <gkartyt@gmail.com>
+Date: Wed, 18 Nov 2026 20:49:57 +0000
+Subject: [PATCH] releasetools: Add empty logical partitions as writable
+
+They get formatted on the device (fs_mgr formattable): read-only, as
+every partition added by an OTA is, mke2fs fails with EPERM and the
+partition is never mounted.
+
+Change-Id: Idc9aadba25f8c7383aa47a7c15d883ef21b31200
+---
+ tools/releasetools/common.py | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/tools/releasetools/common.py b/tools/releasetools/common.py
+index c25accdc9f..50e7d1d3e0 100644
+--- a/tools/releasetools/common.py
++++ b/tools/releasetools/common.py
+@@ -4181,7 +4181,7 @@ class DynamicPartitionsDifference(object):
+ 
+     for name, group, size in self._empty_partitions:
+       comment('Add empty partition %s to group %s' % (name, group))
+-      append('add %s %s' % (name, group))
++      append('add %s %s writable' % (name, group))
+       append('resize %s %d' % (name, size))
+ 
+ 
