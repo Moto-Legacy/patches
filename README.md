@@ -41,13 +41,11 @@ The flashable zip ends up in `out/target/product/falcon/`. Flash it from
 TWRP (`adb sideload`). The partition table is never changed (the bootloader
 only boots Motorola signed tables):
 
-- **falcon** uses retrofit dynamic partitions: a `super` spanning the stock
-  `system` and `cache` partitions, holding ext4 `system` and `vendor` logical
-  partitions plus an empty `metadata` one. The zip writes `boot` and that
-  `super`, so `cache` is taken over.
-- **peregrine** keeps the stock layout: a squashfs `system` (with vendor and
-  product inside) and `cache` mounted as `/metadata`. The zip writes `boot`
-  and `system`.
+Both devices use retrofit dynamic partitions: a `super` spanning the stock
+`system` and `cache` partitions (1.6 GB on both), holding ext4 `system` and
+`vendor` logical partitions plus an empty `metadata` one. The zip writes
+`boot` and that `super`, so `cache` is taken over. peregrine's layout mirrors
+falcon's but has not been built or tested on a device yet.
 
 Only one build at a time on machines with little RAM, and keep `repo sync`
 at `-j8` or lower if GitHub starts refusing connections.
